@@ -1,0 +1,271 @@
+{
+  "5": {
+    "inputs": {
+      "width": 1344,
+      "height": 768,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": "ArsMJStyle, dnddarkestfantasy, Kenva, fluxlisimo, fluxlisimo_neon, CCM-R-Daal\n\nmedium shot professional portrait of an elegant and melancholic 21 year old woman. She is an ageless figure of refined sorrow, with luminous pale skin and long, dark purple flowing hair, perhaps subtly threaded with silver. Her deep purple amethyst eyes, reflecting perpetual twilight, hold a keen, critical intelligence and a profound, weary disdain for the vulgar, overlaid with an ancient sadness. She wears an elaborate, dark gothic-baroque attire of rich decaying velvets and intricate frayed lace, adorned with black obsidian jewelry that seems to drink the light. Her features are sharp, aristocratic, evoking a sorrowful contemplative ancient vampire. Her expression is one of sophisticated weariness and artistic horror when confronted with the unsubtle. The background should be softly out of focus, hinting at an black obsidian library filled with ancient tomes with a balcony overlooking a perpetually twilit city with distant. Lighting is dim, chiaroscuro, atmospheric, emphasizing shadows and ethereal highlights on her face and attire. Color palette: deep purples, midnight blues, blacks, silvers, with muted jewel tones like somber crimson or sapphire, and perhaps a touch of tarnished gold.\n\nA digitally illustrated drawing in stylized 3D anime manga style with painterly cel-shading and hand-drawn textures, featuring volumetric lighting with soft watercolor-like gradients, dynamic comic book halftone patterns, realistic depth of field and atmospheric perspective, soft ambient occlusion shadows, cinematic rim lighting, subsurface scattering effects, realistic material textures and fabric physics, while maintaining clean manga lineart with NPR non-photorealistic rendering and traditional anime color palettes enhanced by atmospheric haze,",
+      "clip": [
+        "49",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "PROMPT"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "30",
+        0
+      ],
+      "vae": [
+        "10",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "10": {
+    "inputs": {
+      "vae_name": "flux_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "30": {
+    "inputs": {
+      "seed": 701164766639716,
+      "steps": 32,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "49",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "31",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "31": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "49",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "33": {
+    "inputs": {
+      "filename_prefix": "season_03",
+      "filename_keys": "",
+      "foldername_prefix": "ephergent_images",
+      "foldername_keys": "",
+      "delimiter": "-",
+      "save_job_data": "basic, models, sampler, prompt",
+      "job_data_per_image": true,
+      "job_custom_text": "",
+      "save_metadata": true,
+      "counter_digits": 3,
+      "counter_position": "last",
+      "one_counter_per_folder": true,
+      "image_preview": true,
+      "output_ext": ".png",
+      "quality": 90,
+      "named_keys": true,
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImageExtended",
+    "_meta": {
+      "title": "💾 Save Image Extended 2.83"
+    }
+  },
+  "39": {
+    "inputs": {
+      "ckpt_name": "FLUX/flux1-dev-fp8.safetensors",
+      "prompt": "",
+      "example": "[none]"
+    },
+    "class_type": "CheckpointLoader|pysssss",
+    "_meta": {
+      "title": "Checkpoint Loader 🐍"
+    }
+  },
+  "41": {
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "t5xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "flux",
+      "device": "default"
+    },
+    "class_type": "DualCLIPLoader",
+    "_meta": {
+      "title": "DualCLIPLoader"
+    }
+  },
+  "42": {
+    "inputs": {
+      "lora_name": "FLUX/DnDDarkestFantasyV2Flux.safetensors",
+      "strength_model": 0.5,
+      "strength_clip": 0.5,
+      "prompt": "",
+      "example": "[none]",
+      "model": [
+        "48",
+        0
+      ],
+      "clip": [
+        "48",
+        1
+      ]
+    },
+    "class_type": "LoraLoader|pysssss",
+    "_meta": {
+      "title": "Lora Loader 🐍"
+    }
+  },
+  "48": {
+    "inputs": {
+      "lora_name": "FLUX/fluxlisimo_v4_lora_FLUX.safetensors",
+      "strength_model": 0.5,
+      "strength_clip": 0.5,
+      "prompt": "",
+      "example": "[none]",
+      "model": [
+        "39",
+        0
+      ],
+      "clip": [
+        "39",
+        1
+      ]
+    },
+    "class_type": "LoraLoader|pysssss",
+    "_meta": {
+      "title": "Lora Loader 🐍"
+    }
+  },
+  "49": {
+    "inputs": {
+      "lora_name": "FLUX/Kenva_Style_FLUX_LoRA.safetensors",
+      "strength_model": 0.7,
+      "strength_clip": 0.7,
+      "prompt": "",
+      "example": "[none]",
+      "model": [
+        "53",
+        0
+      ],
+      "clip": [
+        "53",
+        1
+      ]
+    },
+    "class_type": "LoraLoader|pysssss",
+    "_meta": {
+      "title": "Lora Loader 🐍"
+    }
+  },
+  "50": {
+    "inputs": {
+      "lora_name": "FLUX/creepy-cute-magical-refined.safetensors",
+      "strength_model": 0.3,
+      "strength_clip": 0.3,
+      "prompt": "",
+      "example": "[none]",
+      "model": [
+        "42",
+        0
+      ],
+      "clip": [
+        "42",
+        1
+      ]
+    },
+    "class_type": "LoraLoader|pysssss",
+    "_meta": {
+      "title": "Lora Loader 🐍"
+    }
+  },
+  "51": {
+    "inputs": {
+      "lora_name": "FLUX/fluxlisimo_neon_v2_FLUX.safetensors",
+      "strength_model": 0.3,
+      "strength_clip": 0.3,
+      "prompt": "",
+      "example": "[none]",
+      "model": [
+        "50",
+        0
+      ],
+      "clip": [
+        "50",
+        1
+      ]
+    },
+    "class_type": "LoraLoader|pysssss",
+    "_meta": {
+      "title": "Lora Loader 🐍"
+    }
+  },
+  "53": {
+    "inputs": {
+      "lora_name": "FLUX/Anime_CRABDM.safetensors",
+      "strength_model": 0.3,
+      "strength_clip": 0.3,
+      "prompt": "",
+      "example": "[none]",
+      "model": [
+        "51",
+        0
+      ],
+      "clip": [
+        "51",
+        1
+      ]
+    },
+    "class_type": "LoraLoader|pysssss",
+    "_meta": {
+      "title": "Lora Loader 🐍"
+    }
+  }
+}
