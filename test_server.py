@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+# /// script
+# dependencies = [
+#   "mcp>=0.9.0",
+#   "python-dotenv>=1.0.0",
+#   "requests>=2.31.0",
+#   "websocket-client>=1.6.0",
+#   "Pillow>=10.0.0",
+# ]
+# ///
 """
 Test script for MCP Image Generator Server
 
@@ -16,9 +25,9 @@ os.environ['COMFYUI_URL'] = 'http://comfyui.nexus.home.test'
 os.environ['IMAGE_OUTPUT_DIR'] = '/tmp/ephergent_test_images'
 
 # Add parent to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
 
-from MCP_image_generator.server import ImageGeneratorServer
+from server import ImageGeneratorServer
 
 
 async def test_server():
