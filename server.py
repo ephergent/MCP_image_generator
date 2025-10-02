@@ -15,8 +15,8 @@ Provides image generation services using ComfyUI for The Ephergent story
 generation workflow.
 
 Exposes:
-- 4 image generation tools
-- 3 MCP resources for accessing generated images
+- 5 image generation tools (story images + character profiles)
+- ComfyUI connection testing
 
 Usage:
     uv run server.py
@@ -63,7 +63,14 @@ from mcp.types import (
     LoggingLevel
 )
 
-from shared import BaseMCPServer, ConfigError
+from shared import BaseMCPServer, ConfigError, get_character_by_id
+
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+    Image = None
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -391,6 +398,11 @@ class ImageGeneratorServer(BaseMCPServer):
         self.output_dir = Path(os.getenv('IMAGE_OUTPUT_DIR', '/tmp/ephergent_images'))
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
+        # Character images directory
+        assets_dir = Path(__file__).parent.parent / 'assets'
+        self.characters_dir = assets_dir / 'images' / 'characters'
+        self.characters_dir.mkdir(parents=True, exist_ok=True)
+
         # Initialize ComfyUI client
         self.comfyui_client: Optional[ComfyUIClient] = None
         if self.comfyui_enabled:
@@ -484,6 +496,38 @@ class ImageGeneratorServer(BaseMCPServer):
         }
 
         return prompts
+
+    def _create_resized_image(self, original_path: Path, resized_path: Path, target_size: tuple = (300, 300)) -> bool:
+        """Create a resized version of the image for web display."""
+        if not PIL_AVAILABLE:
+            logger.error("PIL/Pillow not available - cannot create resized image")
+            return False
+
+        try:
+            with Image.open(original_path) as img:
+                # Convert RGBA to RGB if needed
+                if img.mode == 'RGBA':
+                    bg = Image.new('RGB', img.size, (255, 255, 255))
+                    bg.paste(img, mask=img.split()[3])
+                    img = bg
+                elif img.mode != 'RGB':
+                    img = img.convert("RGB")
+
+                # Resize maintaining aspect ratio
+                img.thumbnail(target_size, Image.Resampling.LANCZOS)
+
+                # Create new image with target size and center the thumbnail
+                resized_img = Image.new('RGB', target_size, (255, 255, 255))
+                offset = ((target_size[0] - img.width) // 2, (target_size[1] - img.height) // 2)
+                resized_img.paste(img, offset)
+
+                # Save as PNG
+                resized_img.save(resized_path, 'PNG', optimize=True)
+                logger.info(f"Created resized image: {resized_path}")
+                return True
+        except Exception as e:
+            logger.error(f"Error creating resized image {resized_path}: {e}")
+            return False
 
     # ==================== MCP Tool Handlers ====================
 
@@ -669,6 +713,92 @@ class ImageGeneratorServer(BaseMCPServer):
                 text=json.dumps(error, indent=2)
             )]
 
+    async def handle_generate_character_image(self, arguments: dict) -> list[TextContent]:
+        """Generate character profile image (1024x1024 full + 300x300 resized)."""
+        self.log_tool_call("generate_character_image", arguments)
+
+        try:
+            character_id = arguments.get('character_id')
+            force_regenerate = arguments.get('force_regenerate', False)
+
+            if not character_id:
+                raise ValueError("character_id is required")
+
+            if not self.comfyui_client or not self.comfyui_client.is_available():
+                raise RuntimeError("ComfyUI service not available")
+
+            # Get character data
+            character = get_character_by_id(character_id)
+            if not character:
+                raise ValueError(f"Character not found: {character_id}")
+
+            character_name = character.get('name', character_id)
+            stable_diffusion_prompt = character.get('stable_diffusion_prompt')
+
+            if not stable_diffusion_prompt:
+                raise ValueError(f"Character {character_name} missing stable_diffusion_prompt")
+
+            logger.info(f"Generating profile image for: {character_name} ({character_id})")
+
+            # Set up file paths
+            full_size_path = self.characters_dir / f"{character_id}.png"
+            resized_path = self.characters_dir / f"{character_id}_resized.png"
+
+            # Check if files already exist
+            if not force_regenerate and full_size_path.exists() and resized_path.exists():
+                logger.info(f"Images already exist for {character_id}, skipping regeneration")
+                return [TextContent(
+                    type="text",
+                    text=json.dumps({
+                        'success': True,
+                        'skipped': True,
+                        'character_id': character_id,
+                        'character_name': character_name,
+                        'full_image_path': str(full_size_path),
+                        'resized_image_path': str(resized_path),
+                        'message': 'Images already exist'
+                    }, indent=2)
+                )]
+
+            # Generate the full-size image (1024x1024)
+            logger.info(f"Generating image with prompt: {stable_diffusion_prompt[:100]}...")
+            result_path = self.comfyui_client.generate_image(
+                prompt=stable_diffusion_prompt,
+                output_path=full_size_path,
+                width=1024,
+                height=1024
+            )
+
+            if not result_path or not result_path.exists():
+                raise RuntimeError(f"Failed to generate image for {character_name}")
+
+            logger.info(f"Successfully generated full-size image: {result_path}")
+
+            # Create resized version (300x300)
+            if not self._create_resized_image(result_path, resized_path):
+                raise RuntimeError(f"Failed to create resized image for {character_name}")
+
+            logger.info(f"Successfully generated both images for {character_name}")
+
+            return [TextContent(
+                type="text",
+                text=json.dumps({
+                    'success': True,
+                    'character_id': character_id,
+                    'character_name': character_name,
+                    'full_image_path': str(full_size_path),
+                    'resized_image_path': str(resized_path),
+                    'message': 'Images generated successfully'
+                }, indent=2)
+            )]
+
+        except Exception as e:
+            error = self.handle_error(e, "generate_character_image")
+            return [TextContent(
+                type="text",
+                text=json.dumps(error, indent=2)
+            )]
+
     # ==================== MCP Server Setup ====================
 
     def setup_handlers(self):
@@ -767,6 +897,25 @@ class ImageGeneratorServer(BaseMCPServer):
                         },
                         "required": ["story_id", "story_data"]
                     }
+                ),
+                Tool(
+                    name="generate_character_image",
+                    description="Generate character profile images (1024x1024 full-size + 300x300 resized) using the character's stable_diffusion_prompt. Saves to assets/images/characters/",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "character_id": {
+                                "type": "string",
+                                "description": "Character ID (e.g., 'pixel_paradox', 'a1_assistant')"
+                            },
+                            "force_regenerate": {
+                                "type": "boolean",
+                                "description": "Force regeneration even if images already exist (default: false)",
+                                "default": False
+                            }
+                        },
+                        "required": ["character_id"]
+                    }
                 )
             ]
 
@@ -779,6 +928,7 @@ class ImageGeneratorServer(BaseMCPServer):
                 "generate_single_image": self.handle_generate_single_image,
                 "generate_image_prompts": self.handle_generate_image_prompts,
                 "generate_story_images": self.handle_generate_story_images,
+                "generate_character_image": self.handle_generate_character_image,
             }
 
             handler = handlers.get(name)
